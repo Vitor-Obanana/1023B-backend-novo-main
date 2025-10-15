@@ -6,7 +6,7 @@ interface AutenticacaoRequest extends Request {
 }
 
 function Auth(req:AutenticacaoRequest,res:Response,next:NextFunction){
-    console.log("Cheguei no middleware e bloqueei")
+    console.log("Cheguei no middleware")
     const authHeaders = req.headers.authorization
     console.log(authHeaders)
     if(!authHeaders)
@@ -16,10 +16,10 @@ function Auth(req:AutenticacaoRequest,res:Response,next:NextFunction){
     jwt.verify(token,process.env.JWT_SECRET!,(err,decoded)=>{
         if(err){
             console.log(err)
-            return res.status(401).json({mensagem:"Token Inválido"})
+            return res.status(401).json({mensagem:"Middleware: erro Token"})
         }
         if(typeof decoded ==="string"||!decoded||!("usuarioId" in decoded)){
-            return res.status(401).json({mensagem:"Token Inválido"})
+            return res.status(401).json({mensagem:"Middleware: erro decoded"})
         }
         req.usuarioId = decoded.usuarioId
         next()

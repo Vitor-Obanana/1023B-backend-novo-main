@@ -26,16 +26,17 @@ class UsuariosController {
 
     async login(req: Request, res: Response) {
         const {email, senha} = req.body
+        console.log(req.body)
         if(!email || !senha) return res.status(400).json({mensagem:"Email e senha são obrigatórios!"})
     
         //Como verificar se o usuário tem acesso ou não?
         const usuario = await db.collection('usuarios').findOne({email})
 
-        if(!usuario) return res.status(401).json({mensagem:"Não Autorizado!"})
+        if(!usuario) return res.status(401).json({mensagem:"Usuário Incorreto!"})
         
         const senhaValida = await bcrypt.compare(senha, usuario.senha)
 
-        if(!senhaValida) return res.status(401).json({mensagem:"Não Autorizado!"})
+        if(!senhaValida) return res.status(401).json({mensagem:"Senha Incorreta!"})
 
         //Gerar o token
         const token = jwt.sign({usuarioId: usuario._id}, process.env.JWT_SECRET!, {expiresIn: '1m'})
