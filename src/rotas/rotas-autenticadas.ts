@@ -1,22 +1,22 @@
 import { Router } from "express";
-import usuarioController from "../usuarios/usuario.controller.js";
+import Auth from "../middleware/auth.js";
 import produtoController from "../produtos/produto.controller.js";
 import carrinhoController from "../carrinho/carrinho.controller.js";
 
 const rotasAutenticadas = Router();
 
-// Usuários
-rotasAutenticadas.post("/usuarios", usuarioController.adicionar);
-rotasAutenticadas.get("/usuarios", usuarioController.listar);
+// Aplica o middleware Auth em todas
+rotasAutenticadas.use(Auth);
 
-// Produtos
+// Produtos (somente admin)
 rotasAutenticadas.post("/produtos", produtoController.adicionar);
-rotasAutenticadas.get("/produtos", produtoController.listar);
-rotasAutenticadas.delete('/produtos/:id', produtoController.excluir);
+rotasAutenticadas.delete("/produtos/:id", produtoController.excluir);
 
 // Carrinho
 rotasAutenticadas.post("/adicionarItem", carrinhoController.adicionarItem);
 rotasAutenticadas.post("/removerItem", carrinhoController.removerItem);
-rotasAutenticadas.get("/carrinho", carrinhoController.listarItens); // <-- nova rota
+rotasAutenticadas.get("/carrinho", carrinhoController.listarItens);
 
 export default rotasAutenticadas;
+
+

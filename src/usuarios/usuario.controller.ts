@@ -20,6 +20,7 @@ class UsuarioController {
         res.status(200).json(usuarios);
     }
     async login(req: Request, res: Response){
+        console.log("Login chamado")
         //Recebe email e senha
         const {email, senha} = req.body
         //Validação de email e senha

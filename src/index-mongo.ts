@@ -1,18 +1,21 @@
-import 'dotenv/config'
+import 'dotenv/config';
 import express from 'express';
+import cors from 'cors';
 import rotasAutenticadas from './rotas/rotas-autenticadas.js';
 import rotasNaoAutenticadas from './rotas/rotas-nao-autenticadas.js';
-import Auth from './middleware/auth.js';
-import cors from 'cors'
+
 const app = express();
-app.use(cors())
+
+// 🧩 Middlewares globais
+app.use(cors());
 app.use(express.json());
 
+// 🔓 Rotas públicas (não exigem login)
+app.use(rotasNaoAutenticadas);
 
-app.use(rotasNaoAutenticadas)
-app.use(Auth)
+// 🔒 Rotas protegidas (exigem login via Auth dentro delas)
 app.use(rotasAutenticadas);
 
 app.listen(8000, () => {
-    console.log('Server is running on port 8000');
+  console.log('✅ Servidor rodando na porta 8000');
 });
