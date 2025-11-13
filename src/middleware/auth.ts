@@ -1,28 +1,43 @@
-//Explicando o que é um middleware
-import jwt from 'jsonwebtoken'
-import {Request, Response, NextFunction} from 'express'
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'troco_pra_producao';
 
-interface RequestAuth extends Request{
-    usuarioId?:string
+// Middleware para verificar se o token é válido
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+
+  // Verifica se o header começa com 'Bearer '
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Token ausente ou formato incorreto' });
+  }
+
+  // Extrai o token (tudo depois de 'Bearer ')
+  const token = authHeader.split(' ')[1];
+
+  // Verifica o token JWT
+  jwt.verify(token, JWT_SECRET, (err, payload) => {
+    if (err) {
+      return res.status(401).json({ message: 'Token inválido' });
+    }
+
+    // Armazena os dados do usuário decodificados (ex: id, role, etc.)
+    req.user = payload;
+    next();
+  });
 }
 
-function Auth(req:RequestAuth,res:Response,next:NextFunction){
-    const authHeader = req.headers.authorization
-    if(!authHeader)
-        return res.status(401).json({mensagem:"Token não fornecido!"})
-    const token = authHeader.split(" ")[1]!
-    jwt.verify(token,process.env.JWT_SECRET!,(err,decoded)=>{
-        if(err){
-            console.log(err)
-            return res.status(401).json({mensagem:"Token inválido!"})
-        }
-        if(typeof decoded==="string"||!decoded||!("usuarioId" in decoded))
-            return res.status(401).json({mensagem:"Payload inválido!"})
+// Middleware para verificar o papel (role) do usuário
+function requireRole(role) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Não autenticado' });
+    }
 
-        req.usuarioId = decoded.usuarioId;
-        next()
+    if (req.user.role !== role) {
+      return res.status(403).json({ message: 'Permissão negada' });
+    }
 
-    })
+    next();
+  };
 }
 
-export default Auth
+module.exports = { authenticateToken, requireRole };

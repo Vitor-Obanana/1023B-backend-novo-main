@@ -1,7 +1,8 @@
 import { Router } from "express";
-import Auth from "../middleware/auth.js";
+const Auth = require('../middleware/auth.js');
 import produtoController from "../produtos/produto.controller.js";
 import carrinhoController from "../carrinho/carrinho.controller.js";
+
 
 const rotasAutenticadas = Router();
 
@@ -16,6 +17,9 @@ rotasAutenticadas.delete("/produtos/:id", produtoController.excluir);
 rotasAutenticadas.post("/adicionarItem", carrinhoController.adicionarItem);
 rotasAutenticadas.post("/removerItem", carrinhoController.removerItem);
 rotasAutenticadas.get("/carrinho", carrinhoController.listarItens);
+
+
+rotasAutenticadas.put("/produtos/:id", produtoController.atualizar);
 
 export default rotasAutenticadas;
 
