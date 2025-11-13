@@ -1,57 +1,78 @@
-// routes/cart.js
-const express = require('express');
+import express from "express";
+const { authenticateToken } = require("../middleware/auth");
+const Chart = require("../pages/Chart");
+
+interface AuthenticatedRequest extends express.Request {
+  user: {
+    sub: string;
+    role: string;
+  };
+}
+
 const router = express.Router();
-const Cart = require('../models/Cart');
-const { authenticateToken, requireRole } = require('../middleware/auth');
 
-// Excluir carrinho inteiro - permitimos que o dono exclua, ou ADMIN exclui qualquer
-router.delete('/:cartId', authenticateToken, async (req, res) => {
+// Excluir carrinho inteiro — dono pode excluir, ADMIN também
+router.delete("/:chartId", authenticateToken, async (req: express.Request, res: express.Response) => {
   try {
-    const { cartId } = req.params;
-    const cart = await Cart.findById(cartId);
-    if (!cart) return res.status(404).json({ message: 'Carrinho não encontrado' });
+    const { chartId } = req.params;
+    const authenticatedReq = req as AuthenticatedRequest;
+    const chart = await Chart.findById(chartId);
 
-    if (cart.userId.toString() !== req.user.sub && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ message: 'Você não pode excluir este carrinho' });
+    if (!chart) {
+      return res.status(404).json({ message: "Carrinho não encontrado" });
     }
 
-    await Cart.findByIdAndDelete(cartId);
-    return res.json({ message: 'Carrinho excluído com sucesso' });
+    // Verifica se o usuário é o dono do carrinho ou um ADMIN
+    if (chart.userId.toString() !== authenticatedReq.user.sub && authenticatedReq.user.role !== "ADMIN") {
+      return res.status(403).json({ message: "Você não tem permissão para excluir este carrinho" });
+    }
+
+    await Chart.findByIdAndDelete(chartId);
+    return res.json({ message: "Carrinho excluído com sucesso" });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: 'Erro ao excluir carrinho' });
+    console.error("Erro ao excluir carrinho:", err);
+    return res.status(500).json({ message: "Erro ao excluir carrinho" });
   }
 });
 
-// Opcional: endpoint para excluir carrinho do usuário autenticado sem passar cartId
-router.delete('/', authenticateToken, async (req, res) => {
+// Excluir todos os carrinhos do usuário autenticado
+router.delete("/", authenticateToken, async (req: express.Request, res: express.Response) => {
   try {
-    await Cart.deleteMany({ userId: req.user.sub }); // apaga todos os carrinhos do usuário (caso haja)
-    return res.json({ message: 'Todos os carrinhos do usuário excluídos' });
+    const authenticatedReq = req as AuthenticatedRequest;
+    await Chart.deleteMany({ userId: authenticatedReq.user.sub });
+    return res.json({ message: "Todos os carrinhos do usuário foram excluídos" });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: 'Erro ao excluir carrinhos' });
+    console.error("Erro ao excluir carrinhos:", err);
+    return res.status(500).json({ message: "Erro ao excluir carrinhos" });
   }
 });
 
-const router = express.Router();
-
-router.put("/:id", authMiddleware, async (req, res) => {
+// Atualizar quantidade de um item dentro do carrinho
+router.put("/:id", authenticateToken, async (req: express.Request, res: express.Response) => {
   try {
     const { id } = req.params;
     const { quantidade } = req.body;
 
-    const carrinho = await Carrinho.findOneAndUpdate(
+    // Validação para garantir que a quantidade seja um número válido
+    if (!quantidade || isNaN(Number(quantidade)) || Number(quantidade) <= 0) {
+      return res.status(400).json({ message: "Quantidade inválida" });
+    }
+
+    const carrinhoAtualizado = await Chart.findOneAndUpdate(
       { "itens._id": id },
-      { $set: { "itens.$.quantidade": quantidade } },
+      { $set: { "itens.$.quantidade": Number(quantidade) } },
       { new: true }
     );
 
-    if (!carrinho) return res.status(404).json({ mensagem: "Item não encontrado" });
-    res.json(carrinho);
+    if (!carrinhoAtualizado) {
+      return res.status(404).json({ message: "Item não encontrado no carrinho" });
+    }
+
+    return res.json(carrinhoAtualizado);
   } catch (error) {
-    res.status(500).json({ erro: "Erro ao atualizar quantidade" });
+    console.error("Erro ao atualizar quantidade:", error);
+    return res.status(500).json({ message: "Erro ao atualizar quantidade" });
   }
 });
 
-module.exports = router;
+export default router;

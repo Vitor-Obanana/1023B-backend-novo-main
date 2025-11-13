@@ -1,45 +1,58 @@
-// routes/auth.js
-const express = require('express');
-const router = express.Router();
-const User = require('../models/User');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
+import { Request, Response, NextFunction } from 'express';
+import * as jwt from 'jsonwebtoken';
+
+// Interface para estender a Request do Express e incluir 'user' (payload do JWT)
+interface AuthenticatedRequest extends Request {
+    user?: { 
+        id?: string;
+        role?: 'ADMIN' | 'USER';
+        [key: string]: any; // Permite outras propriedades no payload
+    };
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || 'troco_pra_producao';
 
-// LOGIN
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) return res.status(401).json({ message: 'Credenciais inválidas' });
+// Middleware para verificar se o token é válido
+export function authenticateToken(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    const authHeader = req.headers['authorization'] || req.headers['Authorization'];
 
-    const ok = await user.comparePassword(password);
-    if (!ok) return res.status(401).json({ message: 'Credenciais inválidas' });
+    // Garante que authHeader é uma string e começa com 'Bearer '
+    if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: 'Token ausente ou formato incorreto' });
+    }
 
-    // token payload inclui role e nome
-    const payload = { sub: user._id, name: user.name, role: user.role, email: user.email };
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
+    const token = authHeader.split(' ')[1];
 
-    return res.json({ token, user: { id: user._id, name: user.name, role: user.role, email: user.email } });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: 'Erro no servidor' });
-  }
-});
+    // ✅ CORREÇÃO: Garante que o token foi extraído antes de verificar (resolve o erro 'string | undefined')
+    if (!token) {
+        return res.status(401).json({ message: 'Token malformado após Bearer' });
+    }
 
-// Rota para criar usuário (somente ADMIN pode criar outros ADMINs; para testes pode deixar pública ou proteger)
-router.post('/register', async (req, res) => {
-  try {
-    const { name, email, password, role } = req.body;
-    const passwordHash = await bcrypt.hash(password, 10);
-    const user = new User({ name, email, passwordHash, role: role || 'USER' });
-    await user.save();
-    return res.status(201).json({ message: 'Usuário criado', user: { id: user._id, name: user.name, role: user.role } });
-  } catch (err) {
-    console.error(err);
-    return res.status(400).json({ message: 'Erro ao criar usuário', error: err.message });
-  }
-});
+    // Verifica o token JWT
+    jwt.verify(token, JWT_SECRET, (err: jwt.VerifyErrors | null, payload: any) => {
+        if (err) {
+            return res.status(401).json({ message: 'Token inválido' });
+        }
 
-module.exports = router;
+        req.user = payload; 
+        next();
+    });
+}
+
+// Middleware para verificar o papel (role) do usuário
+export function requireRole(role: 'ADMIN' | 'USER' | string) {
+    return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Não autenticado' });
+        }
+
+        if (req.user.role !== role) {
+            return res.status(403).json({ message: 'Permissão negada' });
+        }
+
+        next();
+    };
+}
+
+// O seu projeto usa module.exports no JS original, então mantemos:
+module.exports = { authenticateToken, requireRole };
