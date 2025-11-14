@@ -1,8 +1,9 @@
 import express from 'express';
-import { isAdmin } from '../middleware/auth.js';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
+
 const router = express.Router();
 
-router.get('/', isAdmin, (req, res) => {
+router.get('/', authenticateToken, requireRole('ADMIN'), (req, res) => {
   res.json({ message: 'Rota de admin funcionando!' });
 });
 
