@@ -1,49 +1,28 @@
-import { Request, Response, NextFunction } from 'express';
-import * as jwt from 'jsonwebtoken';
+//Explicando o que é um middleware
+import jwt from 'jsonwebtoken'
+import {Request, Response, NextFunction} from 'express'
 
-interface AuthenticatedRequest extends Request {
-    user?: { 
-        id?: string;
-        role?: 'ADMIN' | 'USER';
-        [key: string]: any;
-    };
+interface RequestAuth extends Request{
+    usuarioId?:string
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'troco_pra_producao';
-
-export function authenticateToken(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    const authHeader = req.headers['authorization'] || req.headers['Authorization'];
-
-    if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ message: 'Token ausente ou formato incorreto' });
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    if (!token) {
-        return res.status(401).json({ message: 'Token malformado após Bearer' });
-    }
-
-    jwt.verify(token, JWT_SECRET, (err: jwt.VerifyErrors | null, payload: any) => {
-        if (err) {
-            return res.status(401).json({ message: 'Token inválido' });
+function Auth(req:RequestAuth,res:Response,next:NextFunction){
+    const authHeader = req.headers.authorization
+    if(!authHeader)
+        return res.status(401).json({mensagem:"Token não fornecido!"})
+    const token = authHeader.split(" ")[1]!
+    jwt.verify(token,process.env.JWT_SECRET!,(err,decoded)=>{
+        if(err){
+            console.log(err)
+            return res.status(401).json({mensagem:"Token inválido!"})
         }
+        if(typeof decoded==="string"||!decoded||!("usuarioId" in decoded))
+            return res.status(401).json({mensagem:"Payload inválido!"})
 
-        req.user = payload;
-        next();
-    });
+        req.usuarioId = decoded.usuarioId;
+        next()
+
+    })
 }
 
-export function requireRole(role: 'ADMIN' | 'USER' | string) {
-    return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Não autenticado' });
-        }
-
-        if (req.user.role !== role) {
-            return res.status(403).json({ message: 'Permissão negada' });
-        }
-
-        next();
-    };
-}
+export default Auth
