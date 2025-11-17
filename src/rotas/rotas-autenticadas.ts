@@ -24,9 +24,8 @@ rotasAutenticadas.delete("/produtos/:id", AdminAuth, produtoController.excluir);
 rotasAutenticadas.post("/adicionarItem", carrinhoController.adicionarItem);
 rotasAutenticadas.post("/removerItem", carrinhoController.removerItem);
 rotasAutenticadas.get("/carrinho", carrinhoController.listarItens);
-
-// ALTERAR QUANTIDADE
 rotasAutenticadas.put("/alterarQuantidade", carrinhoController.alterarQuantidade);
+rotasAutenticadas.delete("/limparCarrinho", carrinhoController.limparCarrinho); // NOVA ROTA
 
 // -------------------------------------------------------
 // ADMIN – LISTAR USUÁRIOS
