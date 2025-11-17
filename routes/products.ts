@@ -23,7 +23,7 @@ router.post('/', authenticateToken, requireRole('ADMIN'), async (req:Request, re
 
 // listar produtos (público)
 router.get('/', async (req:Request, res:Response) => {
-  const q = {};
+  const q:{name?: any; category?: any} = {};
   // permitir filtros via query string (ex: ?q=nome&cat=eletronicos)
   if (req.query.name) q.name = { $regex: req.query.name, $options: 'i' };
   if (req.query.category) q.category = req.query.category;
