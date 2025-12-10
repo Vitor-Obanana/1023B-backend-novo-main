@@ -24,6 +24,7 @@
     "mongodb": "^6.21.0",
     "mongoose": "^8.19.4",
     "mysql2": "^3.14.3",
+    "stripe": "^20.0.0",
     "vite": "^7.2.2"
   },
   "devDependencies": {
