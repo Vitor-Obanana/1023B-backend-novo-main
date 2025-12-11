@@ -39,14 +39,6 @@ rotasAutenticadas.post("/removerItem", carrinhoController.removerItem);
 rotasAutenticadas.get("/carrinho", carrinhoController.listarItens);
 rotasAutenticadas.put("/alterarQuantidade", carrinhoController.alterarQuantidade);
 rotasAutenticadas.delete("/limparCarrinho", carrinhoController.limparCarrinho);
-
-// -----------------------------------------------------------------------------
-// ADMIN — listar usuários administradores
-// -----------------------------------------------------------------------------
-rotasAutenticadas.get(
-  "/admin/usuarios",
-  AdminAuth,
-  usuarioController.listarApenasAdmins
-);
+rotasAutenticadas.get("/admin/usuarios",AdminAuth,usuarioController.listarApenasAdmins);
 
 export default rotasAutenticadas;
